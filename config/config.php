@@ -11,7 +11,7 @@
 
 return [
 
-	/*
+    /*
 	|--------------------------------------------------------------------------
 	| Note On Url Style Options
 	|--------------------------------------------------------------------------
@@ -30,17 +30,17 @@ return [
 	|
 	*/
 
-	/*
+    /*
 	|--------------------------------------------------------------------------
 	| Meta
 	|--------------------------------------------------------------------------
 	*/
-	'endpoint' 				=> '',
-	'lookup_my_author_by'	=> 'nickname',
-	'lookup_post_author_by'	=> 'login', // Choose: email (may not be public), login (recommended), nice_name, id
-	
+    'endpoint'              => '',
+    'lookup_my_author_by'   => 'nickname',
+    'lookup_post_author_by'     => 'login', // Choose: email (may not be public), login (recommended), nice_name, id
+    
 
-	/*
+    /*
 	|--------------------------------------------------------------------------
 	| Destination Database Settings
 	|--------------------------------------------------------------------------
@@ -52,18 +52,32 @@ return [
 	| you change them, but if you do, just make sure they match.
 	|
 	*/
-	'destination' => [
-		'posts_table' 	=> 'posts',
-		'wp_id'			=> 'wp_id',
-		'title' 		=> 'title',
-		'slug' 			=> 'slug',
-		'content'		=> 'content',
-		'excerpt'		=> 'excerpt',
-		'featured_img'	=> 'featured_img',
-		'status'		=> 'status',
-		'author'		=> 'author_name',
-		'published'		=> 'created_at',
-		'updated'		=> 'updated_at',
-	]
+    'destination' => [
+        'posts_table'   => 'posts',
+        'wp_id'         => 'wp_id',
+        'title'         => 'title',
+        'slug'          => 'slug',
+        'content'       => 'content',
+        'excerpt'       => 'excerpt',
+        'featured_img'  => 'featured_img',
+        'status'        => 'status',
+        'author'        => 'author_id',
+        'published'     => 'created_at',
+        'updated'       => 'updated_at',
+    ],
+
+    /*
+	|--------------------------------------------------------------------------
+	| OAuth2 Credentials
+	|--------------------------------------------------------------------------
+	*/
+    'oauth2' => [
+        'client_id' => 'your_client_id',
+        'client_secret' => 'your_client_secret_key',
+        //todo: configurable grant type
+        //'grant_type' => 'password',
+        'username' => 'your_wpcom_username',
+        'password' => 'your_wpcom_password',
+    ]
 
 ];

@@ -1,16 +1,28 @@
 {
-    "name": "jasonherndon/wptolaravel",
-    "description": "A link between your WP site and your Laravel Database for Blogging",
-     "keywords": ["laravel", "wordpress", "blog", "database", "jasonherndon", "herndon", "WPToLaravel", "wordpress to laravel", "wordprss laravel", "jaosnonjourney"],
-   "license": "MIT",
-    "authors": [
-        {
-            "name": "Jason Herndon",
-            "email": "jason@icaruscreative.org"
-        }
-    ],
-    "minimum-stability": "dev",
-    "require": {
-		"guzzlehttp/guzzle": ">=6.0"	    
+  "name": "jasonherndon/wptolaravel",
+  "description":
+    "A link between your WP site and your Laravel Database for Blogging",
+  "keywords": [
+    "laravel",
+    "wordpress",
+    "blog",
+    "database",
+    "jasonherndon",
+    "herndon",
+    "WPToLaravel",
+    "wordpress to laravel",
+    "wordprss laravel",
+    "jaosnonjourney"
+  ],
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Jason Herndon",
+      "email": "jason@icaruscreative.org"
     }
+  ],
+  "minimum-stability": "dev",
+  "require": {
+    "kamermans/guzzle-oauth2-subscriber": "~1.0"
+  }
 }

@@ -23,6 +23,10 @@
   ],
   "minimum-stability": "dev",
   "require": {
-    "kamermans/guzzle-oauth2-subscriber": "~1.0"
+    "guzzlehttp/guzzle": ">=4.0",
+    "nesbot/carbon": "~1.21"
+  },
+  "autoload-dev": {
+    "classmap": ["src/WPToLaravel.php"]
   }
 }

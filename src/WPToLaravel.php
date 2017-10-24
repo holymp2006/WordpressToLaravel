@@ -2,17 +2,21 @@
 
 namespace JasonHerndon\WPToLaravel;
 
-use Illuminate\Support\Collection;
-use kamermans\OAuth2\GrantType\PasswordCredentials;
-use kamermans\OAuth2\OAuth2Middleware;
-use GuzzleHttp\HandlerStack;
-use Exception;
-use Config;
-use Log;
 use DB;
+use Log;
+use Config;
+use Exception;
+use Carbon\Carbon;
+use GuzzleHttp\Client;
+use GuzzleHttp\HandlerStack;
+use Illuminate\Support\Collection;
 
 class WPToLaravel
 {
+
+    protected $client;
+    protected $baseUri = 'https://public-api.wordpress.com';
+         
 
     /**
      * Setup the WPToLaravel instance
@@ -22,30 +26,27 @@ class WPToLaravel
      */
     public function __construct()
     {
-        // Guzzle init
-        // Authorization client - this is used to request OAuth access tokens
-        $reauth_client = new \GuzzleHttp\Client([
-            // URL for access_token request
-            'base_uri' => 'https://public-api.wordpress.com/oauth2/token',
-        ]);
-        $reauth_config = [
-            "client_id" => Config::get('wptolaravel.oauth2.client_id'),
-            "client_secret" => Config::get('wptolaravel.oauth2.client_secret'),
+        $curl = curl_init( $this->baseUri . '/oauth2/token' );
+        curl_setopt( $curl, CURLOPT_POST, true );
+        curl_setopt( $curl, CURLOPT_POSTFIELDS, [
+            'client_id' => Config::get('wptolaravel.oauth2.client_id'),
+            'client_secret' => Config::get('wptolaravel.oauth2.client_secret'),
+            'grant_type' => 'password',
             'username' => Config::get('wptolaravel.oauth2.username'),
-            'password' => Config::get('wptolaravel.oauth2.password'),
-            "scope" => "your scope(s)", // optional
-            "state" => time(), // optional
+            'password' => Config::get('wptolaravel.oauth2.password')
+        ] );
+        curl_setopt( $curl, CURLOPT_RETURNTRANSFER, 1);
+        $auth = curl_exec( $curl );
+        $auth = json_decode($auth);
+        $access_token = $auth->access_token;
+        $header = [
+            'Authorization' => 'Bearer ' . $access_token,
+            'Accept'        => 'application/json',
         ];
-        $grant_type = new PasswordCredentials($reauth_client, $reauth_config);
-        $oauth = new OAuth2Middleware($grant_type);
-
-        $stack = HandlerStack::create();
-        $stack->push($oauth);
-
         // This is the normal Guzzle client that you use in your application
-        $this->client = new \GuzzleHttp\Client([
-            'handler' => $stack,
-            'auth'    => 'oauth',
+        $this->client = new Client([
+            'base_uri' => $this->baseUri,
+            'headers' => $header
         ]);
         
         $this->endPoint = Config::get('wptolaravel.endpoint') . '.wordpress.com';
@@ -81,10 +82,28 @@ class WPToLaravel
                         // LOOK UP POST IN DATABASE
                         $lookupPost = DB::table($this->destinationPostsTable)->whereSlug($post['slug'])->first();
 
+                        //carbon format dateTime
+                        $postDate = $this->formatDateTime($post['date']);
+                        $postModified = $this->formatDateTime($post['modified']);
+
                         // IF FOUND
                         if ($lookupPost) {
                             // UPDATE
                             DB::table($this->destinationPostsTable)->whereSlug($post['slug'])->update([
+                            Config::get('wptolaravel.destination.wp_id') => $post['ID'],
+                            Config::get('wptolaravel.destination.title') => $post['title'],
+                            Config::get('wptolaravel.destination.slug') => $post['slug'],
+                            Config::get('wptolaravel.destination.content') => $post['content'],
+                            Config::get('wptolaravel.destination.excerpt') => $post['excerpt'],
+                            Config::get('wptolaravel.destination.featured_img') => $post['featured_image'],
+                            Config::get('wptolaravel.destination.author') => $postAuthor,
+                            Config::get('wptolaravel.destination.published') => $postDate,
+                            Config::get('wptolaravel.destination.updated') => $postModified,
+                            ]);
+                        } else {
+                            // CREATE
+                            DB::table($this->destinationPostsTable)->insert([
+                            [
                                 Config::get('wptolaravel.destination.wp_id') => $post['ID'],
                                 Config::get('wptolaravel.destination.title') => $post['title'],
                                 Config::get('wptolaravel.destination.slug') => $post['slug'],
@@ -92,23 +111,9 @@ class WPToLaravel
                                 Config::get('wptolaravel.destination.excerpt') => $post['excerpt'],
                                 Config::get('wptolaravel.destination.featured_img') => $post['featured_image'],
                                 Config::get('wptolaravel.destination.author') => $postAuthor,
-                                Config::get('wptolaravel.destination.published') => $post['date'],
-                                Config::get('wptolaravel.destination.updated') => $post['modified'],
-                            ]);
-                        } else {
-                            // CREATE
-                            DB::table($this->destinationPostsTable)->insert([
-                                [
-                                    Config::get('wptolaravel.destination.wp_id') => $post['ID'],
-                                    Config::get('wptolaravel.destination.title') => $post['title'],
-                                    Config::get('wptolaravel.destination.slug') => $post['slug'],
-                                    Config::get('wptolaravel.destination.content') => $post['content'],
-                                    Config::get('wptolaravel.destination.excerpt') => $post['excerpt'],
-                                    Config::get('wptolaravel.destination.featured_img') => $post['featured_image'],
-                                    Config::get('wptolaravel.destination.author') => $postAuthor,
-                                    Config::get('wptolaravel.destination.published') => $post['date'],
-                                    Config::get('wptolaravel.destination.updated') => $post['modified'],
-                                ],
+                                Config::get('wptolaravel.destination.published') => $postDate,
+                                Config::get('wptolaravel.destination.updated') => $postModified,
+                            ],
                             ]);
                         } // end if post
                     } // end for each post
@@ -120,8 +125,8 @@ class WPToLaravel
             return 'So, I have some bad news. That wordpress blog sync package failed. Here is the report. ' . $e;
         }
 
-        Log::info('Your Posts are now synced');
-        return true;
+            Log::info('Your Posts are now synced');
+            return true;
     }
 
 
@@ -143,11 +148,17 @@ class WPToLaravel
      */
     public function sendRequest($requestname, array $params)
     {
-        $results = $this->client->get('https://public-api.wordpress.com/rest/v1.1/sites/' . $params['endpoint'] . '/' . $requestname);
+        $results = $this->client->get($this->baseUri . '/rest/v1.1/sites/' . $params['endpoint'] . '/' . $requestname);
         if ($results) {
             return json_decode($results->getBody(), true);
         } else {
             return json_decode($results = [], true);
         }
+    }
+
+    public function formatDateTime($dateTime)
+    {
+        $carbon = new Carbon($dateTime);
+        return $carbon->toDateTimeString();
     }
 }
